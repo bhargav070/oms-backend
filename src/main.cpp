@@ -1,6 +1,7 @@
-#include <iostream>
+#include "core/application.h"
 
 int main() {
-    std::cout << "Multi Exchange OMS Starting...\n";
+    Application app;
+    app.run();
     return 0;
 }
