@@ -1,11 +1,17 @@
 #pragma once
 
-#include "../interfaces/IExchange.hpp"
+#include "interfaces/IExchange.hpp"
+#include "../../config/settings.hpp"
+
 #include <memory>
 #include <string>
 
-class ExchangeFactory {
+class ExchangeFactory
+{
 public:
-    static std::unique_ptr<IExchange>
-    create(const std::string& exchange);
+    static std::shared_ptr<IExchange>
+    create(
+        const std::string& exchange,
+        const AppConfig& cfg
+    );
 };

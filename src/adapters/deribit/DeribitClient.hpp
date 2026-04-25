@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../../interfaces/IExchange.hpp"
+#include "interfaces/IExchange.hpp"
+#include "../../../config/settings.hpp"
 
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
@@ -16,11 +17,10 @@ namespace net = boost::asio;
 namespace ssl = net::ssl;
 using tcp = net::ip::tcp;
 
-class DeribitClient : public IExchange {
+class DeribitClient : public IExchange
+{
 public:
-    DeribitClient(
-        const std::string& clientId,
-        const std::string& clientSecret);
+    explicit DeribitClient(const DeribitConfig& cfg);
 
     std::string name() const override;
 
@@ -30,12 +30,21 @@ public:
     std::string placeOrder(const Order& order) override;
     std::string cancelOrder(const std::string& orderId) override;
 
+    std::string modifyOrder(
+        const std::string& orderId,
+        const Order& order) override;
+
+    std::string getOpenOrders() override;
+    std::string getPositions() override;
+
 private:
-    std::string host_ = "test.deribit.com";
+    std::string host_;
     std::string port_ = "443";
 
-    std::string client_id_;
-    std::string client_secret_;
+    std::string api_key_;
+    std::string api_secret_;
+
+    bool testnet_{true};
 
     std::string access_token_;
 

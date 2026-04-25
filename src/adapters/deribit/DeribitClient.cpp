@@ -1,31 +1,34 @@
 #include "DeribitClient.hpp"
 #include <nlohmann/json.hpp>
 #include <openssl/ssl.h>
-#include <openssl/err.h>
 
 using json = nlohmann::json;
 
-DeribitClient::DeribitClient(
-    const std::string& clientId,
-    const std::string& clientSecret)
-    : client_id_(clientId),
-      client_secret_(clientSecret)
+DeribitClient::DeribitClient(const DeribitConfig& cfg)
+    : host_(cfg.host),
+      api_key_(cfg.api_key),
+      api_secret_(cfg.api_secret),
+      testnet_(cfg.testnet)
 {
 }
 
-std::string DeribitClient::name() const {
+std::string DeribitClient::name() const
+{
     return "Deribit";
 }
 
-bool DeribitClient::tokenExpired() const {
+bool DeribitClient::tokenExpired() const
+{
     return std::chrono::steady_clock::now() >= token_expiry_;
 }
 
-bool DeribitClient::isAuthenticated() const {
+bool DeribitClient::isAuthenticated() const
+{
     return !access_token_.empty() && !tokenExpired();
 }
 
-bool DeribitClient::ensureAuthenticated() {
+bool DeribitClient::ensureAuthenticated()
+{
     std::lock_guard<std::mutex> lock(auth_mutex_);
 
     if (isAuthenticated())
@@ -42,8 +45,8 @@ bool DeribitClient::login()
         {"method","public/auth"},
         {"params",{
             {"grant_type","client_credentials"},
-            {"client_id",client_id_},
-            {"client_secret",client_secret_}
+            {"client_id",api_key_},
+            {"client_secret",api_secret_}
         }}
     };
 
@@ -61,8 +64,8 @@ bool DeribitClient::login()
         j["result"].value("expires_in", 3600);
 
     token_expiry_ =
-        std::chrono::steady_clock::now() +
-        std::chrono::seconds(expires - 30);
+        std::chrono::steady_clock::now()
+        + std::chrono::seconds(expires - 30);
 
     return true;
 }
@@ -72,7 +75,8 @@ std::string DeribitClient::sendRequest(
     const std::string& body,
     bool authRequired)
 {
-    try {
+    try
+    {
         net::io_context ioc;
 
         ssl::context ctx(ssl::context::tls_client);
@@ -88,9 +92,11 @@ std::string DeribitClient::sendRequest(
         auto results =
             resolver.resolve(host_, port_);
 
-        beast::get_lowest_layer(stream).connect(results);
+        beast::get_lowest_layer(stream)
+            .connect(results);
 
-        stream.handshake(ssl::stream_base::client);
+        stream.handshake(
+            ssl::stream_base::client);
 
         http::request<http::string_body> req{
             http::verb::post,
@@ -99,11 +105,15 @@ std::string DeribitClient::sendRequest(
         };
 
         req.set(http::field::host, host_);
-        req.set(http::field::content_type, "application/json");
+        req.set(http::field::content_type,
+                "application/json");
 
         if (authRequired)
-            req.set(http::field::authorization,
+        {
+            req.set(
+                http::field::authorization,
                 "Bearer " + access_token_);
+        }
 
         req.body() = body;
         req.prepare_payload();
@@ -120,12 +130,15 @@ std::string DeribitClient::sendRequest(
 
         return res.body();
     }
-    catch (std::exception& e) {
-        return std::string("{\"error\":\"") + e.what() + "\"}";
+    catch (std::exception& e)
+    {
+        return std::string(
+            "{\"error\":\"") + e.what() + "\"}";
     }
 }
 
-std::string DeribitClient::placeOrder(const Order& order)
+std::string DeribitClient::placeOrder(
+    const Order& order)
 {
     if (!ensureAuthenticated())
         return R"({"error":"login_failed"})";
@@ -163,6 +176,61 @@ std::string DeribitClient::cancelOrder(
         {"method","private/cancel"},
         {"params",{
             {"order_id",orderId}
+        }}
+    };
+
+    return sendRequest("/api/v2", body.dump(), true);
+}
+
+std::string DeribitClient::modifyOrder(
+    const std::string& orderId,
+    const Order& order)
+{
+    if (!ensureAuthenticated())
+        return R"({"error":"login_failed"})";
+
+    json body = {
+        {"jsonrpc","2.0"},
+        {"id",4},
+        {"method","private/edit"},
+        {"params",{
+            {"order_id",orderId},
+            {"price",order.price},
+            {"amount",order.quantity}
+        }}
+    };
+
+    return sendRequest("/api/v2", body.dump(), true);
+}
+
+std::string DeribitClient::getOpenOrders()
+{
+    if (!ensureAuthenticated())
+        return R"({"error":"login_failed"})";
+
+    json body = {
+        {"jsonrpc","2.0"},
+        {"id",5},
+        {"method","private/get_open_orders_by_currency"},
+        {"params",{
+            {"currency","BTC"}
+        }}
+    };
+
+    return sendRequest("/api/v2", body.dump(), true);
+}
+
+std::string DeribitClient::getPositions()
+{
+    if (!ensureAuthenticated())
+        return R"({"error":"login_failed"})";
+
+    json body = {
+        {"jsonrpc","2.0"},
+        {"id",6},
+        {"method","private/get_positions"},
+        {"params",{
+            {"currency","BTC"}
         }}
     };
 
