@@ -1,22 +1,32 @@
 #pragma once
 
-#include "../interfaces/IExchange.hpp"
+#include "../auth/SessionManager.hpp"
+#include "../domain/Order.hpp"
+
 #include <memory>
+#include <string>
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;
 
-class OMSService {
+class OMSService
+{
 public:
-    explicit OMSService(std::shared_ptr<IExchange> exchange);
+    explicit OMSService(SessionManager& sessions);
 
-    json placeOrder(const json& req);
-    json cancelOrder(const json& req);
-    json modifyOrder(const json& req);
-    json health() const;
+    std::string login(const json& req);
+
+    std::string placeOrder(
+        const std::string& token,
+        const json& req);
+
+    std::string cancelOrder(
+        const std::string& token,
+        const std::string& orderId);
 
 private:
-    std::shared_ptr<IExchange> exchange_;
-
     Order parseOrder(const json& req);
+
+private:
+    SessionManager& sessions_;
 };

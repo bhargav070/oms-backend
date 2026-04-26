@@ -4,12 +4,19 @@
 
 using json = nlohmann::json;
 
-DeribitClient::DeribitClient(const DeribitConfig& cfg)
-    : host_(cfg.host),
-      api_key_(cfg.api_key),
-      api_secret_(cfg.api_secret),
-      testnet_(cfg.testnet)
+DeribitClient::DeribitClient(
+    const std::string& apiKey,
+    const std::string& apiSecret,
+    bool isTestnet)
+    :
+    api_key_(apiKey),
+    api_secret_(apiSecret),
+    is_testnet_(isTestnet)
 {
+    host_ =
+        is_testnet_
+        ? "test.deribit.com"
+        : "www.deribit.com";
 }
 
 std::string DeribitClient::name() const

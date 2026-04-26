@@ -3,16 +3,17 @@
 #include "../service/OMSService.hpp"
 #include <string>
 
-class Router {
+class Router
+{
 public:
-    explicit Router(OMSService& service);
+    explicit Router(OMSService& oms);
 
     std::string handle(
         const std::string& method,
         const std::string& target,
-        const std::string& body
-    );
+        const std::string& body,
+        const std::string& authHeader);
 
 private:
-    OMSService& service_;
+    OMSService& oms_;
 };

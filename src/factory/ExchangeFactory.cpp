@@ -1,15 +1,16 @@
 #include "ExchangeFactory.hpp"
-#include "./adapters/deribit/DeribitClient.hpp"
+#include "../adapters/deribit/DeribitClient.hpp"
 
 std::shared_ptr<IExchange>
 ExchangeFactory::create(
-    const std::string& exchange,
-    const AppConfig& cfg)
+    const LoginRequest& req)
 {
-    if (exchange == "deribit")
+    if (req.exchange == "deribit")
     {
         return std::make_shared<DeribitClient>(
-            cfg.deribit
+            req.api_key,
+            req.api_secret,
+            req.is_testnet
         );
     }
 

@@ -1,83 +1,101 @@
 #include "OMSService.hpp"
 
-OMSService::OMSService(
-    std::shared_ptr<IExchange> exchange)
-    : exchange_(std::move(exchange)) {}
+#include "../factory/ExchangeFactory.hpp"
+#include "../models/LoginRequest.hpp"
 
-Order OMSService::parseOrder(const json& req)
+OMSService::OMSService(
+    SessionManager& sessions)
+    : sessions_(sessions)
+{
+}
+
+std::string OMSService::login(
+    const json& req)
+{
+    LoginRequest r;
+
+    r.exchange   = req.value("exchange", "deribit");
+    r.api_key    = req.at("api_key").get<std::string>();
+    r.api_secret = req.at("api_secret").get<std::string>();
+    r.is_testnet = req.value("is_testnet", true);
+
+    auto exchange =
+        ExchangeFactory::create(r);
+
+    if (!exchange)
+        return R"({"error":"unsupported_exchange"})";
+
+    if (!exchange->login())
+        return R"({"error":"login_failed"})";
+
+    std::string token =
+        sessions_.createSession(exchange);
+
+    json res = {
+        {"success", true},
+        {"session_token", token},
+        {"exchange", exchange->name()}
+    };
+
+    return res.dump();
+}
+
+Order OMSService::parseOrder(
+    const json& req)
 {
     Order o;
 
-    // symbol
-    o.symbol = req.at("symbol").get<std::string>();
+    o.symbol = req.at("symbol");
 
-    // qty
-    o.quantity = req.at("qty").get<double>();
+    std::string side =
+        req.value("side", "buy");
 
-    // optional price
-    o.price = req.value("price", 0.0);
+    o.side =
+        side == "buy"
+        ? Side::Buy
+        : Side::Sell;
 
-    // side
-    std::string side = req.value("side", "buy");
+    std::string type =
+        req.value("type", "limit");
 
-    if (side == "buy")
-        o.side = Side::Buy;
-    else if (side == "sell")
-        o.side = Side::Sell;
-    else
-        throw std::runtime_error("Invalid side");
+    o.type =
+        type == "market"
+        ? OrderType::Market
+        : OrderType::Limit;
 
-    // type
-    std::string type = req.value("type", "limit");
+    o.price =
+        req.value("price", 0.0);
 
-    if (type == "market")
-        o.type = OrderType::Market;
-    else if (type == "limit")
-        o.type = OrderType::Limit;
-    else
-        throw std::runtime_error("Invalid order type");
+    o.quantity =
+        req.at("qty");
 
     return o;
 }
 
-json OMSService::placeOrder(const json& req)
+std::string OMSService::placeOrder(
+    const std::string& token,
+    const json& req)
 {
-    Order o = parseOrder(req);
+    auto ex =
+        sessions_.getSession(token);
 
-    auto resp = exchange_->placeOrder(o);
+    if (!ex)
+        return R"({"error":"invalid_session"})";
 
-    return json::parse(resp);
+    Order order = parseOrder(req);
+
+    return ex->placeOrder(order);
 }
 
-json OMSService::cancelOrder(const json& req)
+std::string OMSService::cancelOrder(
+    const std::string& token,
+    const std::string& orderId)
 {
-    auto id = req.at("order_id")
-                .get<std::string>();
+    auto ex =
+        sessions_.getSession(token);
 
-    auto resp =
-        exchange_->cancelOrder(id);
+    if (!ex)
+        return R"({"error":"invalid_session"})";
 
-    return json::parse(resp);
-}
-
-json OMSService::modifyOrder(const json& req)
-{
-    auto id = req.at("order_id")
-                .get<std::string>();
-
-    Order o = parseOrder(req);
-
-    auto resp =
-        exchange_->modifyOrder(id, o);
-
-    return json::parse(resp);
-}
-
-json OMSService::health() const
-{
-    return {
-        {"status", "ok"},
-        {"service", "oms"},
-        {"exchange", exchange_->name()}
-    };
+    return ex->cancelOrder(orderId);
 }

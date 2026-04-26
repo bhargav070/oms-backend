@@ -20,8 +20,11 @@ using tcp = net::ip::tcp;
 class DeribitClient : public IExchange
 {
 public:
-    explicit DeribitClient(const DeribitConfig& cfg);
-
+    DeribitClient(
+        const std::string& apiKey,
+        const std::string& apiSecret,
+        bool isTestnet);
+        
     std::string name() const override;
 
     bool login() override;
@@ -44,7 +47,7 @@ private:
     std::string api_key_;
     std::string api_secret_;
 
-    bool testnet_{true};
+    bool is_testnet_{true};
 
     std::string access_token_;
 
