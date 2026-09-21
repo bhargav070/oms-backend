@@ -20,7 +20,7 @@ int main()
         boost::asio::io_context ioc;
 
         SessionManager sessions;
-        OMSService oms(sessions);
+        OMSService oms(sessions, cfg);
 
         Router router(oms);
 

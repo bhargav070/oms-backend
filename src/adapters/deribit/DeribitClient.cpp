@@ -227,6 +227,35 @@ std::string DeribitClient::getOpenOrders()
     return sendRequest("/api/v2", body.dump(), true);
 }
 
+std::string DeribitClient::getOrderHistory()
+{
+    if (!ensureAuthenticated())
+        return R"({"error":{"message":"login_failed","code":"AUTHENTICATION_FAILED"}})";
+
+    json orders = json::array();
+    for (const auto& currency : {"BTC", "ETH", "USDC"})
+    {
+        json body = {
+            {"jsonrpc", "2.0"},
+            {"id", 10},
+            {"method", "private/get_order_history_by_currency"},
+            {"params", {{"currency", currency}, {"count", 100}}}
+        };
+        const auto response = json::parse(sendRequest("/api/v2", body.dump(), true), nullptr, false);
+        if (response.is_discarded())
+            continue;
+        if (response.contains("error"))
+            return response.dump();
+        if (response.value("result", json::object()).is_array())
+        {
+            for (const auto& order : response["result"])
+                orders.push_back(order);
+        }
+    }
+
+    return json{{"jsonrpc", "2.0"}, {"result", { {"order_history", orders} }}}.dump();
+}
+
 std::string DeribitClient::getPositions()
 {
     if (!ensureAuthenticated())
@@ -242,4 +271,54 @@ std::string DeribitClient::getPositions()
     };
 
     return sendRequest("/api/v2", body.dump(), true);
+}
+
+std::string DeribitClient::getAccountSummary(
+    const std::string& currency)
+{
+    if (!ensureAuthenticated())
+        return R"({"error":"login_failed"})";
+
+    json body = {
+        {"jsonrpc", "2.0"},
+        {"id", 9},
+        {"method", "private/get_account_summary"},
+        {"params", {{"currency", currency}}}
+    };
+
+    return sendRequest("/api/v2", body.dump(), true);
+}
+
+std::string DeribitClient::getTicker(
+    const std::string& instrument)
+{
+    json body = {
+        {"jsonrpc", "2.0"},
+        {"id", 7},
+        {"method", "public/ticker"},
+        {"params", {{"instrument_name", instrument}}}
+    };
+
+    return sendRequest("/api/v2", body.dump(), false);
+}
+
+std::string DeribitClient::getCandles(
+    const std::string& instrument,
+    const std::string& resolution,
+    std::int64_t startMs,
+    std::int64_t endMs)
+{
+    json body = {
+        {"jsonrpc", "2.0"},
+        {"id", 8},
+        {"method", "public/get_tradingview_chart_data"},
+        {"params", {
+            {"instrument_name", instrument},
+            {"start_timestamp", startMs},
+            {"end_timestamp", endMs},
+            {"resolution", resolution}
+        }}
+    };
+
+    return sendRequest("/api/v2", body.dump(), false);
 }

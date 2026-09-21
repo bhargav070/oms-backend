@@ -8,6 +8,7 @@ add_executable(oms
     api/http_server.cpp
     api/router.cpp
     auth/SessionManager.cpp
+    utils/logger.cpp
 )
 
 target_include_directories(oms PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

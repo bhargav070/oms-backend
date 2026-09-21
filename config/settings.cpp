@@ -20,9 +20,13 @@ AppConfig Settings::load() {
 
     cfg.deribit.api_key = envOrThrow("DERIBIT_API_KEY");
     cfg.deribit.api_secret = envOrThrow("DERIBIT_API_SECRET");
-    cfg.deribit.host = envOrDefault("DERIBIT_HOST", "test.deribit.com");
+    cfg.deribit.host = envOrDefault(
+        "DERIBIT_BASE_URL",
+        envOrDefault("DERIBIT_HOST", "test.deribit.com").c_str());
     cfg.deribit.testnet =
-        envOrDefault("DERIBIT_TESTNET", "true") == std::string("true");
+        envOrDefault(
+            "DERIBIT_USE_TESTNET",
+            envOrDefault("DERIBIT_TESTNET", "true").c_str()) == std::string("true");
     cfg.default_exchange = envOrDefault("DEFAULT_EXCHANGE", "deribit"); 
     return cfg;
 }

@@ -68,7 +68,10 @@ void EnvLoader::load()
 {
     std::vector<fs::path> candidates = {
         ".env",
+        "backend/.env",
+        "backend/.env.example",
         "../.env",
+        "../.env.example",
         "../../.env",
         "../../../.env"
     };

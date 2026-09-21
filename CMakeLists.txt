@@ -1,12 +1,23 @@
 cmake_minimum_required(VERSION 3.20)
+
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE
+        "${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE FILEPATH "Repository-local vcpkg toolchain file"
+    )
+endif()
+
+if(NOT DEFINED VCPKG_TARGET_TRIPLET)
+    set(VCPKG_TARGET_TRIPLET
+        "x64-windows"
+        CACHE STRING "Default repository vcpkg triplet"
+    )
+endif()
+
 project(MultiExchangeOMS)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-set(CMAKE_TOOLCHAIN_FILE
-    ${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake
-)
 
 add_compile_definitions(
     _WIN32_WINNT=0x0A00

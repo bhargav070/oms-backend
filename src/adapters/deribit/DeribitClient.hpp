@@ -38,7 +38,20 @@ public:
         const Order& order) override;
 
     std::string getOpenOrders() override;
+    std::string getOrderHistory() override;
     std::string getPositions() override;
+
+    std::string getAccountSummary(
+        const std::string& currency) override;
+
+    std::string getTicker(
+        const std::string& instrument) override;
+
+    std::string getCandles(
+        const std::string& instrument,
+        const std::string& resolution,
+        std::int64_t startMs,
+        std::int64_t endMs) override;
 
 private:
     std::string host_;
